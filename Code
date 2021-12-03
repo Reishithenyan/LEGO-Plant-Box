@@ -1,0 +1,224 @@
+// Include the AccelStepper library:
+#include <AccelStepper.h>
+
+//add library dumbo
+#include <Servo.h>
+
+//only communism here
+Servo ourServoL;
+int servoPinL = A5;
+
+Servo ourServoR;
+int servoPinR = A4;
+
+// Motor pin definitions:
+#define motorPin1  10      // IN1 on the ULN2003 driver8
+#define motorPin2  11      // IN2 on the ULN2003 driver9
+#define motorPin3  12     // IN3 on the ULN2003 driver10
+#define motorPin4  13     // IN4 on the ULN2003 driver11
+// Define the AccelStepper interface type; 4 wire motor in half step mode: always 8
+#define MotorInterfaceType 8
+// Initialize with pin sequence IN1-IN3-IN2-IN4 for using the AccelStepper library with 28BYJ-48 stepper motor:
+AccelStepper stepperLeft = AccelStepper(MotorInterfaceType, motorPin1, motorPin3, motorPin2, motorPin4);
+
+
+#define motorPin5  6      // IN1 on the ULN2003 driver
+#define motorPin6  7      // IN2 on the ULN2003 driver
+#define motorPin7  8     // IN3 on the ULN2003 driver
+#define motorPin8  9     // IN4 on the ULN2003 driver
+// Define the AccelStepper interface type; 4 wire motor in half step mode:
+#define MotorInterfaceType 8
+// Initialize with pin sequence IN1-IN3-IN2-IN4 for using the AccelStepper library with 28BYJ-48 stepper motor:
+AccelStepper stepperRight = AccelStepper(MotorInterfaceType, motorPin5, motorPin7, motorPin6, motorPin8);
+
+
+#define motorPin9   2      // IN1 on the ULN2003 driver
+#define motorPin10  3      // IN2 on the ULN2003 driver
+#define motorPin11  4     // IN3 on the ULN2003 driver
+#define motorPin12  5     // IN4 on the ULN2003 driver
+// Define the AccelStepper interface type; 4 wire motor in half step mode:
+#define MotorInterfaceType 8
+// Initialize with pin sequence IN1-IN3-IN2-IN4 for using the AccelStepper library with 28BYJ-48 stepper motor:
+AccelStepper stepperPlate = AccelStepper(MotorInterfaceType, motorPin9, motorPin11, motorPin10, motorPin12);
+
+unsigned long startTime = millis();
+unsigned long endTime;
+//1 min
+int interval = 10000;
+//60000;
+int degree = 0;
+
+boolean climbing = true;
+boolean dropping = true;
+boolean hasDroppedYet = false;
+boolean nope = false;
+
+void setup() {
+  // put your setup code here, to run once:
+Serial.begin(9600);
+  
+  stepperLeft.setMaxSpeed(1000);
+  stepperRight.setMaxSpeed(1000);
+  stepperPlate.setMaxSpeed(1000);
+
+   //make sure attached to PWM
+  ourServoL.attach(servoPinL);
+  ourServoR.attach(servoPinR);
+}
+
+void loop() {
+//up
+ourServoR.write(90);
+ourServoL.write(0);
+
+test0();
+
+if(nope == true){
+  spin();
+}
+
+}
+
+  void test0(){
+  int back = analogRead(A0);
+  Serial.println("Back Value :");
+  Serial.println(back);
+  
+  int front = analogRead(A1);
+  Serial.println("Front Value :");
+  Serial.println(front);
+  delay(250);
+
+if(front < 51 && back < 70 && hasDroppedYet == true){
+    climb();
+    nope = false;
+  }
+
+if(front > 130 && dropping == true){
+  drop();
+  nope = true;
+}
+
+}
+
+  void climb(){
+  if(climbing == false){
+  stepperLeft.setSpeed(0);
+  stepperLeft.runSpeed();
+  stepperLeft.setAcceleration(0);
+      
+  stepperRight.setSpeed(0);
+  stepperRight.runSpeed();
+  stepperRight.setAcceleration(0);
+  }  
+
+  else if(climbing == true){
+    // Set the speed of the motor in steps per second:
+  stepperLeft.setSpeed(1000);
+  // Step the motor with constant speed as set by setSpeed():
+  stepperLeft.runSpeed();
+  stepperLeft.setAcceleration(200);
+
+  // Set the speed of the motor in steps per second:
+  stepperRight.setSpeed(1000);
+  // Step the motor with constant speed as set by setSpeed():
+  stepperRight.runSpeed();
+  stepperRight.setAcceleration(200);
+  
+    
+  //LEFT WINCH MOTOR
+     //pull up
+  //counterclockwise
+  ourServoR.write(90);
+  stepperLeft.moveTo(0);
+  stepperLeft.runToPosition();
+
+
+  //RIGHT WINCH MOTOR
+     //pull up
+  //clockwise
+  ourServoL.write(0);
+  stepperRight.moveTo(0);
+  stepperRight.runToPosition(); 
+
+  climbing = false;
+  dropping = true;
+  }
+  }
+
+
+  void drop(){
+  if(dropping == false){
+  stepperLeft.setSpeed(0);
+  stepperLeft.runSpeed();
+  stepperLeft.setAcceleration(0);
+      
+  stepperRight.setSpeed(0);
+  stepperRight.runSpeed();
+  stepperRight.setAcceleration(0);
+  }  
+
+  else if(dropping == true){
+    // Set the speed of the motor in steps per second:
+  stepperLeft.setSpeed(1000);
+  // Step the motor with constant speed as set by setSpeed():
+  stepperLeft.runSpeed();
+  stepperLeft.setAcceleration(200);
+
+  // Set the speed of the motor in steps per second:
+  stepperRight.setSpeed(1000);
+  // Step the motor with constant speed as set by setSpeed():
+  stepperRight.runSpeed();
+  stepperRight.setAcceleration(200);
+    
+  //LEFT WINCH MOTOR
+    //drop down
+  //clockwise 
+  stepperLeft.moveTo(6400);
+  stepperLeft.runToPosition();
+  ourServoR.write(0);
+  stepperLeft.moveTo(31600);
+  stepperLeft.runToPosition();
+
+  //RIGHT WINCH MOTOR
+     //drop down
+  //counterclockwise
+  stepperRight.moveTo(-4200);
+  stepperRight.runToPosition();
+  ourServoL.write(90);
+  stepperRight.moveTo(-31200);
+  stepperRight.runToPosition();
+
+      stepperLeft.setSpeed(0);
+      stepperLeft.runSpeed();
+      stepperLeft.setAcceleration(0);
+      
+      stepperRight.setSpeed(0);
+      stepperRight.runSpeed();
+      stepperRight.setAcceleration(0);
+
+  dropping = false;
+  climbing = true;
+  hasDroppedYet = true;
+  }
+  }
+
+  void spin(){
+  stepperPlate.setSpeed(1);
+  stepperPlate.runSpeed();
+  stepperPlate.setAcceleration(1);
+
+  for(int j = 0; j <= 2048; j++){
+    Serial.println("POSITION :");
+    Serial.println(j); 
+    stepperPlate.moveTo(j);
+    stepperPlate.runToPosition();
+    test0();
+    if (nope == false){
+      Serial.println("leave for loop"); 
+      break; // leave the for loop
+      
+    }
+  }
+  
+  }
